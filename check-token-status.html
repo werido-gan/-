@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>令牌状态检查工具</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .status-item {
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            border-left: 4px solid #ccc;
+        }
+        .status-item.success {
+            background-color: #d4edda;
+            border-left-color: #28a745;
+        }
+        .status-item.warning {
+            background-color: #fff3cd;
+            border-left-color: #ffc107;
+        }
+        .status-item.error {
+            background-color: #f8d7da;
+            border-left-color: #dc3545;
+        }
+        .status-item.info {
+            background-color: #d1ecf1;
+            border-left-color: #17a2b8;
+        }
+        .btn {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        .btn-danger {
+            background-color: #dc3545;
+        }
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .token-display {
+            word-break: break-all;
+            font-family: monospace;
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>智能物流看板 - 令牌状态检查</h1>
+        
+        <div class="status-item info">
+            <h3>当前认证状态</h3>
+            <div id="auth-status"></div>
+        </div>
+        
+        <div class="status-item info">
+            <h3>令牌信息</h3>
+            <div id="token-info"></div>
+        </div>
+        
+        <div class="status-item info">
+            <h3>用户信息</h3>
+            <div id="user-info"></div>
+        </div>
+        
+        <div style="margin-top: 30px;">
+            <button class="btn" onclick="checkTokenStatus()">检查令牌状态</button>
+            <button class="btn btn-danger" onclick="clearAuthData()">清除认证数据</button>
+        </div>
+        
+        <div style="margin-top: 30px;">
+            <h3>操作建议</h3>
+            <ul>
+                <li>如果令牌已过期或无效，请重新登录系统</li>
+                <li>管理员账号：admin / admin123</li>
+                <li>登录地址：http://localhost:3000/</li>
+            </ul>
+        </div>
+    </div>
+    
+    <script>
+        // 检查令牌状态
+        function checkTokenStatus() {
+            // 获取本地存储中的认证数据
+            const isAuthenticated = localStorage.getItem('isAuthenticated');
+            const token = localStorage.getItem('token');
+            const user = localStorage.getItem('user');
+            
+            // 显示认证状态
+            const authStatusDiv = document.getElementById('auth-status');
+            if (isAuthenticated === 'true' && token) {
+                authStatusDiv.innerHTML = '<p style="color: green;">✅ 已认证</p>';
+            } else {
+                authStatusDiv.innerHTML = '<p style="color: red;">❌ 未认证</p>';
+            }
+            
+            // 显示令牌信息
+            const tokenInfoDiv = document.getElementById('token-info');
+            if (token) {
+                try {
+                    const [header, payload, signature] = token.split('.');
+                    const decodedPayload = JSON.parse(atob(payload));
+                    
+                    const now = Date.now() / 1000;
+                    const isExpired = decodedPayload.exp < now;
+                    
+                    tokenInfoDiv.innerHTML = `
+                        <p>令牌存在: ✅</p>
+                        <p>令牌前50字符: <span class="token-display">${token.substring(0, 50)}...</span></p>
+                        <p>令牌过期时间: ${new Date(decodedPayload.exp * 1000).toString()}</p>
+                        <p>当前时间: ${new Date().toString()}</p>
+                        <p>令牌状态: <span style="color: ${isExpired ? 'red' : 'green'}">${isExpired ? '已过期' : '有效'}</span></p>
+                        <p>用户名: ${decodedPayload.username}</p>
+                        <p>用户角色: ${decodedPayload.role}</p>
+                    `;
+                } catch (e) {
+                    tokenInfoDiv.innerHTML = '<p style="color: red;">❌ 令牌解析失败</p>';
+                }
+            } else {
+                tokenInfoDiv.innerHTML = '<p style="color: red;">❌ 令牌不存在</p>';
+            }
+            
+            // 显示用户信息
+            const userInfoDiv = document.getElementById('user-info');
+            if (user) {
+                try {
+                    const userData = JSON.parse(user);
+                    userInfoDiv.innerHTML = `
+                        <p>用户名: ${userData.username}</p>
+                        <p>用户ID: ${userData.id}</p>
+                        <p>用户角色: ${userData.role}</p>
+                        <p>邮箱: ${userData.email || '未设置'}</p>
+                    `;
+                } catch (e) {
+                    userInfoDiv.innerHTML = '<p style="color: red;">❌ 用户信息解析失败</p>';
+                }
+            } else {
+                userInfoDiv.innerHTML = '<p style="color: red;">❌ 用户信息不存在</p>';
+            }
+        }
+        
+        // 清除认证数据
+        function clearAuthData() {
+            if (confirm('确定要清除所有认证数据吗？这将需要您重新登录。')) {
+                localStorage.removeItem('isAuthenticated');
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                checkTokenStatus();
+                alert('认证数据已清除，请重新登录。');
+            }
+        }
+        
+        // 页面加载时自动检查
+        window.onload = checkTokenStatus;
+    </script>
+</body>
+</html>

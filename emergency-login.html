@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>紧急登录工具</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 400px;
+            margin: 50px auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            text-align: center;
+            background-color: #f9f9f9;
+        }
+        h1 {
+            color: #333;
+        }
+        .test-account {
+            background-color: #e8f5e9;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+            text-align: left;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            text-align: left;
+        }
+        .success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+        .error {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+    </style>
+</head>
+<body>
+    <h1>紧急登录工具</h1>
+    <p>使用以下测试账号登录系统：</p>
+    
+    <div class="test-account">
+        <strong>用户名：</strong> testuser1768286173820<br>
+        <strong>密码：</strong> Test1234<br>
+        <strong>角色：</strong> 普通用户
+    </div>
+
+    <button onclick="testDirectLogin()">直接登录（跳过前端）</button>
+    <button onclick="openRegister()">注册新账号</button>
+    <button onclick="clearStorage()">清除浏览器缓存</button>
+    
+    <div id="result"></div>
+
+    <script>
+        // 直接登录函数
+        async function testDirectLogin() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '正在登录...';
+            resultDiv.className = '';
+
+            try {
+                // 直接访问后端API
+                const response = await fetch('http://localhost:3001/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: 'testuser1768286173820',
+                        password: 'Test1234'
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.status === 201 && data.success && data.data.access_token) {
+                    // 保存认证信息到localStorage
+                    localStorage.setItem('user', JSON.stringify(data.data.user));
+                    localStorage.setItem('isAuthenticated', 'true');
+                    localStorage.setItem('token', data.data.access_token);
+                    
+                    resultDiv.innerHTML = `
+✅ 登录成功！
+
+用户信息：
+- 用户名：${data.data.user.username}
+- 角色：${data.data.user.role}
+- Token：${data.data.access_token.substring(0, 50)}...
+
+认证信息已保存到localStorage。
+点击下方链接返回应用：
+http://192.168.128.1:3001/#/
+`;
+                    resultDiv.className = 'success';
+                } else {
+                    resultDiv.innerHTML = `
+❌ 登录失败：${data.message || '未知错误'}
+
+响应状态：${response.status}
+响应数据：${JSON.stringify(data, null, 2)}`;
+                    resultDiv.className = 'error';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+❌ 请求错误：${error.message}
+
+请确保后端服务正在运行：http://localhost:3001`;
+                resultDiv.className = 'error';
+            }
+        }
+
+        // 打开注册页面
+        function openRegister() {
+            window.location.href = 'http://192.168.128.1:3001/#/register';
+        }
+
+        // 清除浏览器缓存
+        function clearStorage() {
+            localStorage.clear();
+            sessionStorage.clear();
+            
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '✅ 浏览器缓存已清除！\n\n请刷新页面后重新登录。';
+            resultDiv.className = 'success';
+        }
+
+        // 页面加载时检查认证状态
+        window.onload = function() {
+            const isAuthenticated = localStorage.getItem('isAuthenticated');
+            const user = localStorage.getItem('user');
+            
+            if (isAuthenticated && user) {
+                const userData = JSON.parse(user);
+                const resultDiv = document.getElementById('result');
+                resultDiv.innerHTML = `
+🔍 当前认证状态：
+- 已认证：${isAuthenticated}
+- 用户名：${userData.username}
+- 角色：${userData.role}
+
+点击 "直接登录" 按钮更新认证信息。`;
+                resultDiv.className = 'success';
+            }
+        };
+    </script>
+</body>
+</html>

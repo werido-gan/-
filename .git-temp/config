@@ -1,0 +1,11 @@
+[core]
+	repositoryformatversion = 0
+	filemode = false
+	bare = false
+	logallrefupdates = true
+	worktree = D:/智能看板
+	symlinks = false
+	ignorecase = true
+[remote "origin"]
+	url = https://github.com/qianyunjie700-maker/-2.git
+	fetch = +refs/heads/*:refs/remotes/origin/*
