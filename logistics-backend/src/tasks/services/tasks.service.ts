@@ -28,9 +28,21 @@ export class TasksService {
 
   onModuleInit() {
     this.logger.log('任务模块初始化完成');
+    
+    // 检查定时任务是否正确注册
+    try {
+      const job = this.schedulerRegistry.getCronJob('logistics-daily-refresh');
+      if (job) {
+        this.logger.log(`定时任务已注册，下次执行时间: ${job.nextDate().toISO()}`);
+      } else {
+        this.logger.warn('定时任务未找到');
+      }
+    } catch (error) {
+      this.logger.error('检查定时任务状态时出错:', error.message);
+    }
   }
 
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT, {
+  @Cron('0 6 * * *', {
     name: 'logistics-daily-refresh',
     timeZone: 'Asia/Shanghai',
   })

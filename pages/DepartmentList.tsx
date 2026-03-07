@@ -102,14 +102,31 @@ export const DepartmentList: React.FC = () => {
   };
 
   const handleExport = () => {
-      // 准备导出数据
-      const exportData = filteredOrders.map(o => ({
-        '单号': o.order_number,
-        '部门': o.department_key,
-        '客户': o.customer_name,
-        '状态': ORDER_STATUS_MAP[o.status],
-        '下单日期': o.details?.order_date ? new Date(o.details.order_date).toLocaleDateString() : 'N/A',
-        '承运商': o.details?.carrier || 'N/A'
+      // 按ID正序排序，保持与导入顺序一致
+      const sortedOrders = [...filteredOrders].sort((a, b) => a.id - b.id);
+      
+      // 准备导出数据 - 与导入模板格式一致，添加物流状态和物流信息
+      const exportData = sortedOrders.map(o => ({
+        '客户/项目名称': o.customer_name,
+        '申请单号/外部订单号': o.details?.application_number || '',
+        '收货地址': o.details?.destination || '',
+        '收货人': o.details?.recipient || '',
+        '收货人电话': o.details?.phone || '',
+        '物料名称': o.details?.product_info || '',
+        '订单号': o.details?.internal_order_number || o.order_number,
+        '快递公司': o.details?.carrier || '',
+        '快递单号': o.order_number,
+        '下单日期': o.details?.order_date ? new Date(o.details.order_date).toLocaleDateString() : '',
+        '计划发货日': o.details?.planned_ship_date ? new Date(o.details.planned_ship_date).toLocaleDateString() : '',
+        '备注': o.details?.note || '',
+        '物流状态': ORDER_STATUS_MAP[o.status] || o.status,
+        '物流信息': o.details?.timeline && Array.isArray(o.details.timeline) && o.details.timeline.length > 0 ? 
+          o.details.timeline.map((entry: any) => {
+            const time = entry.time ? new Date(entry.time).toLocaleString() : '';
+            const status = entry.status || '';
+            const description = entry.description || '';
+            return `${time} - ${status}: ${description}`;
+          }).join('\n') : '暂无物流信息'
       }));
       
       // 创建工作簿和工作表
@@ -326,7 +343,7 @@ export const DepartmentList: React.FC = () => {
                                     <td className="p-4 text-sm text-slate-300 max-w-xs truncate">
                                         {order.details?.recipient || 'N/A'}
                                     </td>
-                                    <td className="p-4 text-sm text-slate-300 max-w-xs truncate">
+                                    <td className="p-4 text-sm text-slate-300 max-w-[200px] truncate whitespace-nowrap overflow-hidden text-ellipsis">
                                         {order.details?.destination || 'N/A'}
                                     </td>
                                     <td className="p-4 text-xs text-slate-400 font-mono whitespace-nowrap">

@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { ScheduleModule } from '@nestjs/schedule';
 import { join } from 'path';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -14,10 +15,12 @@ import { OperationLogsModule } from './operation-logs/operation-logs.module';
 import { CommonModule } from './common/common.module';
 import { LogisticsProxyModule } from './logistics-proxy/logistics-proxy.module';
 import { TasksModule } from './tasks/tasks.module';
+import { SystemLogsModule } from './system-logs/system-logs.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ScheduleModule.forRoot(),
     // 配置请求速率限制
     ThrottlerModule.forRoot([
       {
@@ -125,6 +128,7 @@ import { TasksModule } from './tasks/tasks.module';
     OperationLogsModule,
     LogisticsProxyModule,
     TasksModule,
+    SystemLogsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

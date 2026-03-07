@@ -263,6 +263,9 @@ export class OrdersService {
             phone: (orderInfo.details?.phone || orderInfo.phone || orderInfo.recipient_phone || orderInfo.shouhuorendianhua), // 映射电话
             destination: (orderInfo.details?.destination || orderInfo.destination || orderInfo.address || orderInfo.shouhuodizhi), // 映射地址
             carrier: (orderInfo.details?.carrier || orderInfo.carrier || orderInfo.courier_company || orderInfo.kuaidigongsi), // 快递公司
+            application_number: (orderInfo.details?.application_number || orderInfo.application_number || orderInfo.shenqingdanhao || orderInfo.waibudingdanhao), // 映射申请单号/外部订单号
+            internal_order_number: (orderInfo.details?.internal_order_number || orderInfo.internal_order_number || orderInfo.dingdanhao), // 映射内部订单号
+            product_info: (orderInfo.details?.product_info || orderInfo.product_info || orderInfo.wuliaomingcheng), // 映射物料名称
             logisticsData: logisticsInfo // 保存物流信息
           };
 

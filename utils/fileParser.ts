@@ -227,7 +227,7 @@ export const processImportData = (rawData: any[]): { orders: Order[]; errors: Ar
     
     // 修改 2: 检查【快递单号】是否重复，而不是订单号
     if (existingTrackingNumbers.has(trackingNumber)) {
-      errors.push({ row: rowNumber, message: `快递单号重复: ${trackingNumber}` });
+      console.log(`跳过重复快递单号: ${trackingNumber} (第${rowNumber}行)`);
       return;
     }
     

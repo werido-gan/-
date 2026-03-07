@@ -91,6 +91,36 @@ const getInitialAuthState = (): AuthState => {
   };
 };
 
+// 从本地存储获取初始操作日志状态
+const getInitialOperationLogsState = (): OperationLog[] => {
+  const storedLogs = localStorage.getItem('operationLogs');
+  if (storedLogs) {
+    try {
+      return JSON.parse(storedLogs);
+    } catch (error) {
+      console.error('解析操作日志失败:', error);
+      return [];
+    }
+  }
+  return [];
+};
+
+// 保存操作日志到本地存储
+const saveOperationLogsToStorage = (logs: OperationLog[]): void => {
+  try {
+    localStorage.setItem('operationLogs', JSON.stringify(logs));
+  } catch (error) {
+    console.error('保存操作日志失败:', error);
+  }
+};
+
+// 更新操作日志并保存到本地存储的包装函数
+const updateOperationLogs = (currentLogs: OperationLog[], newLogs: OperationLog[]): OperationLog[] => {
+  const updatedLogs = newLogs;
+  saveOperationLogsToStorage(updatedLogs);
+  return updatedLogs;
+};
+
 interface LogisticsStore {
   // 数据
   orders: Order[];
@@ -166,7 +196,7 @@ interface LogisticsStore {
 
 export const useLogisticsStore = create<LogisticsStore>((set, get) => ({
   orders: [], // Empty initial data
-  operationLogs: [],
+  operationLogs: getInitialOperationLogsState(), // 从本地存储加载初始日志
   users: [], // Empty initial user data
   auth: getInitialAuthState(),
   loading: {},
@@ -216,11 +246,15 @@ export const useLogisticsStore = create<LogisticsStore>((set, get) => ({
             created_at: new Date().toISOString()
           };
           
-          set((state) => ({
-            orders: state.orders.map(o => o.id === id ? response.data.order : o),
-            operationLogs: [newLog, ...state.operationLogs],
-            loading: { ...state.loading, deleteOrder: false }
-          }));
+          set((state) => {
+            const updatedLogs = [newLog, ...state.operationLogs];
+            saveOperationLogsToStorage(updatedLogs);
+            return {
+              orders: state.orders.map(o => o.id === id ? response.data.order : o),
+              operationLogs: updatedLogs,
+              loading: { ...state.loading, deleteOrder: false }
+            };
+          });
         }
         return { success: response.success, message: response.message || '归档订单成功' };
       } catch (apiError) {
@@ -251,11 +285,15 @@ export const useLogisticsStore = create<LogisticsStore>((set, get) => ({
           };
           
           // 更新状态
-          set((state) => ({
-            orders: state.orders.map(o => o.id === id ? updatedOrder : o),
-            operationLogs: [newLog, ...state.operationLogs],
-            loading: { ...state.loading, deleteOrder: false }
-          }));
+          set((state) => {
+            const updatedLogs = [newLog, ...state.operationLogs];
+            saveOperationLogsToStorage(updatedLogs);
+            return {
+              orders: state.orders.map(o => o.id === id ? updatedOrder : o),
+              operationLogs: updatedLogs,
+              loading: { ...state.loading, deleteOrder: false }
+            };
+          });
           
           return { success: true, message: '归档订单成功' };
         }
@@ -333,10 +371,14 @@ export const useLogisticsStore = create<LogisticsStore>((set, get) => ({
         created_at: new Date().toISOString()
       };
       
-      set((state) => ({
-        operationLogs: [newLog, ...state.operationLogs],
-        loading: { ...state.loading, batchDeleteOrders: false }
-      }));
+      set((state) => {
+        const updatedLogs = [newLog, ...state.operationLogs];
+        saveOperationLogsToStorage(updatedLogs);
+        return {
+          operationLogs: updatedLogs,
+          loading: { ...state.loading, batchDeleteOrders: false }
+        };
+      });
       
       if (failedOrders.length > 0) {
         return { 
@@ -367,11 +409,15 @@ export const useLogisticsStore = create<LogisticsStore>((set, get) => ({
       try {
         const response = await apiService.put<OrderApiResponse>(`/orders/${id}/restore`);
         if (response.success && response.data?.order) {
-          set((state) => ({
-            orders: state.orders.map(o => o.id === id ? response.data.order : o),
-            operationLogs: response.data.logs ? [...response.data.logs, ...state.operationLogs] : state.operationLogs,
-            loading: { ...state.loading, restoreOrder: false }
-          }));
+          set((state) => {
+            const updatedLogs = response.data.logs ? [...response.data.logs, ...state.operationLogs] : state.operationLogs;
+            saveOperationLogsToStorage(updatedLogs);
+            return {
+              orders: state.orders.map(o => o.id === id ? response.data.order : o),
+              operationLogs: updatedLogs,
+              loading: { ...state.loading, restoreOrder: false }
+            };
+          });
         }
         return { success: response.success, message: response.message || '恢复订单成功' };
       } catch (apiError) {
@@ -402,11 +448,15 @@ export const useLogisticsStore = create<LogisticsStore>((set, get) => ({
           };
           
           // 更新状态
-          set((state) => ({
-            orders: state.orders.map(o => o.id === id ? updatedOrder : o),
-            operationLogs: [newLog, ...state.operationLogs],
-            loading: { ...state.loading, restoreOrder: false }
-          }));
+          set((state) => {
+            const updatedLogs = [newLog, ...state.operationLogs];
+            saveOperationLogsToStorage(updatedLogs);
+            return {
+              orders: state.orders.map(o => o.id === id ? updatedOrder : o),
+              operationLogs: updatedLogs,
+              loading: { ...state.loading, restoreOrder: false }
+            };
+          });
           
           return { success: true, message: '恢复订单成功' };
         }
@@ -448,11 +498,15 @@ export const useLogisticsStore = create<LogisticsStore>((set, get) => ({
           created_at: new Date().toISOString()
         };
         
-        set((state) => ({
-          orders: state.orders.filter(o => o.id !== id),
-          operationLogs: [newLog, ...state.operationLogs],
-          loading: { ...state.loading, hardDeleteOrder: false }
-        }));
+        set((state) => {
+          const updatedLogs = [newLog, ...state.operationLogs];
+          saveOperationLogsToStorage(updatedLogs);
+          return {
+            orders: state.orders.filter(o => o.id !== id),
+            operationLogs: updatedLogs,
+            loading: { ...state.loading, hardDeleteOrder: false }
+          };
+        });
       }
       return { success: response.success, message: response.message || '彻底删除订单成功' };
     } catch (error) {
@@ -1076,7 +1130,8 @@ export const useLogisticsStore = create<LogisticsStore>((set, get) => ({
             status: isDelivered || logInfo.wuliuzhuangtai.includes('签收') || logInfo.wuliuzhuangtai.includes('取出') || logInfo.wuliuzhuangtai.includes('包裹已从代收点取出') || logInfo.wuliuzhuangtai.includes('包裹已送至') ? OrderStatus.DELIVERED :
                     logInfo.wuliuzhuangtai.includes('退回') ? OrderStatus.RETURNED :
                     logInfo.wuliuzhuangtai.includes('异常') || logInfo.wuliuzhuangtai.includes('问题') || logInfo.wuliuzhuangtai.includes('失败') || logInfo.wuliuzhuangtai.includes('派送不成功') || logInfo.wuliuzhuangtai.includes('未妥投') || logInfo.wuliuzhuangtai.includes('反签收') || logInfo.wuliuzhuangtai.includes('拒签') || logInfo.wuliuzhuangtai.includes('退件') || logInfo.wuliuzhuangtai.includes('无法') || logInfo.wuliuzhuangtai.includes('未通过') || logInfo.wuliuzhuangtai.includes('异常件') || logInfo.wuliuzhuangtai.includes('拒收') || logInfo.wuliuzhuangtai.includes('待进一步处理') || logInfo.wuliuzhuangtai.includes('问题件') || logInfo.wuliuzhuangtai.includes('转寄更改单') || logInfo.wuliuzhuangtai.includes('退货') || logInfo.wuliuzhuangtai.includes('无法正常派送') ? OrderStatus.EXCEPTION :
-                    logInfo.wuliuzhuangtai.includes('运输') ? OrderStatus.IN_TRANSIT : OrderStatus.PENDING,
+                    logInfo.wuliuzhuangtai.includes('运输') ? OrderStatus.IN_TRANSIT :
+                    logInfo.wuliuzhuangtai.includes('无物流') ? OrderStatus.PENDING : OrderStatus.PENDING,
             details: {
               order_date: order.details?.order_date || new Date().toISOString(),
               destination: order.details?.destination || '',
@@ -1088,6 +1143,8 @@ export const useLogisticsStore = create<LogisticsStore>((set, get) => ({
               timeline: timeline,
               tracking_number: order.details?.tracking_number || (order as any).tracking_number || expressNumber,
               recipient: recipient, // 保存收货人姓名
+              application_number: order.details?.application_number || order.application_number || '', // 保存申请单号/外部订单号
+              internal_order_number: order.details?.internal_order_number || order.internal_order_number || '', // 保存内部订单号
               tracking: logInfo.xiangxiwuliu,
               trackingInfo: {
                 status: logInfo.wuliuzhuangtai,
@@ -1141,7 +1198,9 @@ export const useLogisticsStore = create<LogisticsStore>((set, get) => ({
             note: order.details?.note || '',
             timeline: [],
             tracking_number: order.details?.tracking_number || (order as any).tracking_number || expressNumber,
-            recipient: recipient // 保存收货人姓名
+            recipient: recipient, // 保存收货人姓名
+            application_number: order.details?.application_number || order.application_number || '', // 保存申请单号/外部订单号
+            internal_order_number: order.details?.internal_order_number || order.internal_order_number || '' // 保存内部订单号
           }
         };
       }); // 不再过滤，保留所有订单
@@ -1174,9 +1233,7 @@ export const useLogisticsStore = create<LogisticsStore>((set, get) => ({
         target_type: TargetType.ORDER,
         target_id: 'batch_import',
         details: {
-          description: errorCount > 0 ? 
-            `批量导入了 ${savedCount} 个订单，${errorCount} 个订单导入失败` : 
-            `批量导入了 ${savedCount} 个订单`,
+          description: `批量导入了 ${newOrders.length} 个订单，已成功 ${savedCount} 个，失败 ${errorCount} 个`,
           import_count: savedCount,
           failed_count: errorCount,
           operator: operator,
@@ -1189,14 +1246,18 @@ export const useLogisticsStore = create<LogisticsStore>((set, get) => ({
       // 重新获取所有订单以确保数据最新
       await get().fetchAllOrders();
 
-      set({
-        loading: { importOrders: false },
-        taskStatus: 'completed',
-        taskProgress: 0,
-        operationLogs: [newLog, ...state.operationLogs]
+      set((state) => {
+        const updatedLogs = [newLog, ...state.operationLogs];
+        saveOperationLogsToStorage(updatedLogs);
+        return {
+          loading: { importOrders: false },
+          taskStatus: 'completed',
+          taskProgress: 0,
+          operationLogs: updatedLogs
+        };
       });
 
-      return { success: errorCount === 0, message: `成功导入 ${savedCount} 条订单` };
+      return { success: errorCount === 0, message: `批量导入了 ${newOrders.length} 个订单，已成功 ${savedCount} 个，失败 ${errorCount} 个` };
 
     } catch (error) {
       const msg = (error as Error).message;
@@ -1210,10 +1271,14 @@ export const useLogisticsStore = create<LogisticsStore>((set, get) => ({
       set({ loading: { exportOrders: true }, error: { exportOrders: null } });
       const response = await apiService.get<{ orders: Order[]; logs?: OperationLog[] }>('/orders/export', { ...filterCriteria });
       if (response.success && response.data?.orders) {
-        set((state) => ({
-          operationLogs: response.data.logs ? [...response.data.logs, ...state.operationLogs] : state.operationLogs,
-          loading: { ...state.loading, exportOrders: false }
-        }));
+        set((state) => {
+          const updatedLogs = response.data.logs ? [...response.data.logs, ...state.operationLogs] : state.operationLogs;
+          saveOperationLogsToStorage(updatedLogs);
+          return {
+            operationLogs: updatedLogs,
+            loading: { ...state.loading, exportOrders: false }
+          };
+        });
         return { success: true, message: '导出成功', data: response.data.orders };
       }
       set((state) => ({ loading: { ...state.loading, exportOrders: false } }));
@@ -1233,10 +1298,14 @@ export const useLogisticsStore = create<LogisticsStore>((set, get) => ({
       if (response.success && response.data?.orders) {
         // 调用现有的导出工具函数
         exportToExcel(response.data.orders, `订单导出_${orderId}`);
-        set((state) => ({
-          operationLogs: response.data.logs ? [...response.data.logs, ...state.operationLogs] : state.operationLogs,
-          loading: { ...state.loading, exportOrders: false }
-        }));
+        set((state) => {
+          const updatedLogs = response.data.logs ? [...response.data.logs, ...state.operationLogs] : state.operationLogs;
+          saveOperationLogsToStorage(updatedLogs);
+          return {
+            operationLogs: updatedLogs,
+            loading: { ...state.loading, exportOrders: false }
+          };
+        });
         return { success: true, message: '导出成功' };
       }
       set((state) => ({ loading: { ...state.loading, exportOrders: false } }));
@@ -1702,7 +1771,8 @@ export const useLogisticsStore = create<LogisticsStore>((set, get) => ({
         status: isDelivered || logisticsInfo.wuliuzhuangtai.includes('签收') || logisticsInfo.wuliuzhuangtai.includes('取出') || logisticsInfo.wuliuzhuangtai.includes('包裹已从代收点取出') || logisticsInfo.wuliuzhuangtai.includes('包裹已送至') ? OrderStatus.DELIVERED :
                 logisticsInfo.wuliuzhuangtai.includes('退回') ? OrderStatus.RETURNED :
                 logisticsInfo.wuliuzhuangtai.includes('异常') || logisticsInfo.wuliuzhuangtai.includes('问题') || logisticsInfo.wuliuzhuangtai.includes('失败') || logisticsInfo.wuliuzhuangtai.includes('派送不成功') || logisticsInfo.wuliuzhuangtai.includes('未妥投') || logisticsInfo.wuliuzhuangtai.includes('反签收') || logisticsInfo.wuliuzhuangtai.includes('拒签') || logisticsInfo.wuliuzhuangtai.includes('退件') || logisticsInfo.wuliuzhuangtai.includes('无法') || logisticsInfo.wuliuzhuangtai.includes('未通过') || logisticsInfo.wuliuzhuangtai.includes('异常件') || logisticsInfo.wuliuzhuangtai.includes('拒收') || logisticsInfo.wuliuzhuangtai.includes('待进一步处理') || logisticsInfo.wuliuzhuangtai.includes('问题件') || logisticsInfo.wuliuzhuangtai.includes('转寄更改单') || logisticsInfo.wuliuzhuangtai.includes('退货') || logisticsInfo.wuliuzhuangtai.includes('无法正常派送') ? OrderStatus.EXCEPTION :
-                logisticsInfo.wuliuzhuangtai.includes('运输') ? OrderStatus.IN_TRANSIT : OrderStatus.PENDING,
+                logisticsInfo.wuliuzhuangtai.includes('运输') ? OrderStatus.IN_TRANSIT :
+                logisticsInfo.wuliuzhuangtai.includes('无物流') ? OrderStatus.PENDING : OrderStatus.PENDING,
         updated_at: new Date().toISOString()
       };
       
@@ -2257,7 +2327,8 @@ export const useLogisticsStore = create<LogisticsStore>((set, get) => ({
               carrier: logisticsInfo.kdgs,
               status: isDelivered || logisticsInfo.wuliuzhuangtai.includes('签收') || logisticsInfo.wuliuzhuangtai.includes('取出') || logisticsInfo.wuliuzhuangtai.includes('包裹已从代收点取出') || logisticsInfo.wuliuzhuangtai.includes('包裹已送至') ? OrderStatus.DELIVERED :
                       logisticsInfo.wuliuzhuangtai.includes('退回') ? OrderStatus.RETURNED :
-                      logisticsInfo.wuliuzhuangtai.includes('运输') ? OrderStatus.IN_TRANSIT : OrderStatus.PENDING,
+                      logisticsInfo.wuliuzhuangtai.includes('运输') ? OrderStatus.IN_TRANSIT :
+                      logisticsInfo.wuliuzhuangtai.includes('无物流') ? OrderStatus.PENDING : OrderStatus.PENDING,
               updated_at: new Date().toISOString()
             };
               }
@@ -2361,9 +2432,11 @@ export const useLogisticsStore = create<LogisticsStore>((set, get) => ({
     }
   },
   
-  addOperationLog: (log) => set((state) => ({
-    operationLogs: [log, ...state.operationLogs]
-  })),
+  addOperationLog: (log) => set((state) => {
+    const updatedLogs = [log, ...state.operationLogs];
+    saveOperationLogsToStorage(updatedLogs);
+    return { operationLogs: updatedLogs };
+  }),
   
   calculateWarningStatus: async (order): Promise<WarningStatus> => {
     try {
@@ -2381,11 +2454,15 @@ export const useLogisticsStore = create<LogisticsStore>((set, get) => ({
       set({ loading: { updateAllWarningStatuses: true }, error: { updateAllWarningStatuses: null } });
       const response = await apiService.post<UpdatedWarningsApiResponse>('/orders/update-all-warnings');
       if (response.success && response.data) {
-        set((state) => ({
-          orders: response.data.updatedOrders,
-          operationLogs: response.data.logs ? [...response.data.logs, ...state.operationLogs] : state.operationLogs,
-          loading: { ...state.loading, updateAllWarningStatuses: false }
-        }));
+        set((state) => {
+          const updatedLogs = response.data.logs ? [...response.data.logs, ...state.operationLogs] : state.operationLogs;
+          saveOperationLogsToStorage(updatedLogs);
+          return {
+            orders: response.data.updatedOrders,
+            operationLogs: updatedLogs,
+            loading: { ...state.loading, updateAllWarningStatuses: false }
+          };
+        });
       } else {
         set((state) => ({ loading: { ...state.loading, updateAllWarningStatuses: false } }));
       }
@@ -2431,11 +2508,14 @@ export const useLogisticsStore = create<LogisticsStore>((set, get) => ({
         // 确保我们使用的是正确的日志数据格式
         // 后端返回的格式：{ success: true, data: { logs: [], pagination: {} } }
         const logs = (response as any)?.data?.logs || [];
-        set((state) => ({
-          operationLogs: logs, // 使用后端返回的日志数据
-          loading: { ...state.loading, fetchOperationLogs: false },
-          error: { ...state.error, fetchOperationLogs: null }
-        }));
+        set((state) => {
+          saveOperationLogsToStorage(logs);
+          return {
+            operationLogs: logs, // 使用后端返回的日志数据
+            loading: { ...state.loading, fetchOperationLogs: false },
+            error: { ...state.error, fetchOperationLogs: null }
+          };
+        });
         return { success: true, message: '获取操作日志成功' };
       } else {
         set({ loading: { fetchOperationLogs: false }, error: { fetchOperationLogs: response.message || '获取失败' } });
@@ -2474,7 +2554,11 @@ export const useLogisticsStore = create<LogisticsStore>((set, get) => ({
 
           return {
             users: [...state.users, response.data.user],
-            operationLogs: [newLog, ...state.operationLogs],
+            operationLogs: (() => {
+              const updatedLogs = [newLog, ...state.operationLogs];
+              saveOperationLogsToStorage(updatedLogs);
+              return updatedLogs;
+            })(),
             loading: { ...state.loading, createUser: false },
             error: { ...state.error, createUser: null }
           };
@@ -2518,7 +2602,11 @@ export const useLogisticsStore = create<LogisticsStore>((set, get) => ({
 
           return {
             users: state.users.map(user => user.id === userId ? response.data?.user : user),
-            operationLogs: [newLog, ...state.operationLogs],
+            operationLogs: (() => {
+              const updatedLogs = [newLog, ...state.operationLogs];
+              saveOperationLogsToStorage(updatedLogs);
+              return updatedLogs;
+            })(),
             loading: { ...state.loading, updateUser: false },
             error: { ...state.error, updateUser: null }
           };
@@ -2566,7 +2654,11 @@ export const useLogisticsStore = create<LogisticsStore>((set, get) => ({
 
           return {
             users: state.users.filter(user => user.id !== userId),
-            operationLogs: [newLog, ...state.operationLogs],
+            operationLogs: (() => {
+              const updatedLogs = [newLog, ...state.operationLogs];
+              saveOperationLogsToStorage(updatedLogs);
+              return updatedLogs;
+            })(),
             loading: { ...state.loading, deleteUser: false },
             error: { ...state.error, deleteUser: null }
           };
@@ -2607,15 +2699,19 @@ export const useLogisticsStore = create<LogisticsStore>((set, get) => ({
     };
     
     // 先更新登录状态和本地日志
-    set((state) => ({
-      auth: {
-        isAuthenticated: true,
-        user,
-        token,
-        csrfToken: state.auth.csrfToken || null
-      },
-      operationLogs: [loginLog, ...state.operationLogs]
-    }));
+    set((state) => {
+      const updatedLogs = [loginLog, ...state.operationLogs];
+      saveOperationLogsToStorage(updatedLogs);
+      return {
+        auth: {
+          isAuthenticated: true,
+          user,
+          token,
+          csrfToken: state.auth.csrfToken || null
+        },
+        operationLogs: updatedLogs
+      };
+    });
     
     // 然后获取完整的操作日志历史
     try {
@@ -2625,9 +2721,13 @@ export const useLogisticsStore = create<LogisticsStore>((set, get) => ({
         // 后端返回的格式：{ success: true, data: { logs: [], pagination: {} } }
         const logs = (response as any)?.data?.logs || [];
         // 添加最新的登录日志到后端返回的日志列表
-        set((state) => ({
-          operationLogs: [loginLog, ...logs]
-        }));
+        set((state) => {
+          const updatedLogs = [loginLog, ...logs];
+          saveOperationLogsToStorage(updatedLogs);
+          return {
+            operationLogs: updatedLogs
+          };
+        });
       }
     } catch (error) {
       console.error('登录后获取操作日志失败:', error);
@@ -2665,14 +2765,18 @@ export const useLogisticsStore = create<LogisticsStore>((set, get) => ({
     }
     
     // 更新状态
-    set({
-      auth: {
-        isAuthenticated: false,
-        user: null,
-        token: null,
-        csrfToken: null
-      },
-      operationLogs: [logoutLog, ...state.operationLogs]
+    set((state) => {
+      const updatedLogs = [logoutLog, ...state.operationLogs];
+      saveOperationLogsToStorage(updatedLogs);
+      return {
+        auth: {
+          isAuthenticated: false,
+          user: null,
+          token: null,
+          csrfToken: null
+        },
+        operationLogs: updatedLogs
+      };
     });
     
     // 清除本地存储
@@ -2913,15 +3017,19 @@ export const useLogisticsStore = create<LogisticsStore>((set, get) => ({
         }
         
         // 更新状态
-        set((state) => ({
-          auth: {
-            ...state.auth,
-            user: finalUpdatedUser,
-            token: state.auth.token // 再次确保token不会丢失
-          },
-          operationLogs: [newLog, ...state.operationLogs],
-          loading: { ...state.loading, updateUserProfile: false }
-        }));
+        set((state) => {
+          const updatedLogs = [newLog, ...state.operationLogs];
+          saveOperationLogsToStorage(updatedLogs);
+          return {
+            auth: {
+              ...state.auth,
+              user: finalUpdatedUser,
+              token: state.auth.token // 再次确保token不会丢失
+            },
+            operationLogs: updatedLogs,
+            loading: { ...state.loading, updateUserProfile: false }
+          };
+        });
         
         return { success: true, message: '更新个人信息成功' };
       } else {
@@ -2970,15 +3078,19 @@ export const useLogisticsStore = create<LogisticsStore>((set, get) => ({
         }
         
         // 更新状态
-        set((state) => ({
-          auth: {
-            ...state.auth,
-            user: localUpdatedUser,
-            token: state.auth.token // 确保token不会丢失
-          },
-          operationLogs: [newLog, ...state.operationLogs],
-          loading: { ...state.loading, updateUserProfile: false }
-        }));
+        set((state) => {
+          const updatedLogs = [newLog, ...state.operationLogs];
+          saveOperationLogsToStorage(updatedLogs);
+          return {
+            auth: {
+              ...state.auth,
+              user: localUpdatedUser,
+              token: state.auth.token // 确保token不会丢失
+            },
+            operationLogs: updatedLogs,
+            loading: { ...state.loading, updateUserProfile: false }
+          };
+        });
         
         return { 
           success: false, 
@@ -3031,10 +3143,14 @@ export const useLogisticsStore = create<LogisticsStore>((set, get) => ({
           created_at: new Date().toISOString()
         };
         
-        set((state) => ({
-          operationLogs: [newLog, ...state.operationLogs],
-          loading: { ...state.loading, changePassword: false }
-        }));
+        set((state) => {
+          const updatedLogs = [newLog, ...state.operationLogs];
+          saveOperationLogsToStorage(updatedLogs);
+          return {
+            operationLogs: updatedLogs,
+            loading: { ...state.loading, changePassword: false }
+          };
+        });
         
         return { success: true, message: response.message || '修改密码成功' };
       }

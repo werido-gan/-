@@ -5,10 +5,7 @@ import { TasksService } from './services/tasks.service';
 import { TasksController } from './controllers/tasks.controller';
 import { OrdersModule } from '../orders/orders.module';
 import { HttpModule } from '@nestjs/axios';
-import { ScheduleModule } from '@nestjs/schedule';
 import { LogisticsUtilModule } from '../logistics-proxy/utils/logistics-util.module';
-import { BullModule } from '@nestjs/bullmq';
-import { LogisticsQueueService } from './services/logistics-queue.service';
 import { RedisModule } from '@nestjs-modules/ioredis';
 import { DistributedLockService } from '../common/services/distributed-lock.service';
 
@@ -17,21 +14,7 @@ import { DistributedLockService } from '../common/services/distributed-lock.serv
     TypeOrmModule.forFeature([TaskExecution]),
     OrdersModule,
     HttpModule,
-    ScheduleModule.forRoot(),
     LogisticsUtilModule,
-    BullModule.forRootAsync({
-      imports: [RedisModule],
-      useFactory: () => ({
-        connection: {
-          host: process.env.REDIS_HOST || 'localhost',
-          port: parseInt(process.env.REDIS_PORT || '6379'),
-        },
-      }),
-      inject: [],
-    }),
-    BullModule.registerQueue({
-      name: 'logistics-refresh',
-    }),
     RedisModule.forRootAsync({
       useFactory: () => ({
         type: 'single',
@@ -43,7 +26,7 @@ import { DistributedLockService } from '../common/services/distributed-lock.serv
     }),
   ],
   controllers: [TasksController],
-  providers: [TasksService, LogisticsQueueService, DistributedLockService],
-  exports: [TasksService, LogisticsQueueService, DistributedLockService],
+  providers: [TasksService, DistributedLockService],
+  exports: [TasksService, DistributedLockService],
 })
 export class TasksModule {}

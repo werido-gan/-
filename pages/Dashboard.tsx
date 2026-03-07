@@ -102,13 +102,22 @@ export const Dashboard: React.FC = () => {
       // 格式化日期为YYYY-MM-DD
       const dateStr = date.toISOString().split('T')[0];
       
-      // 统计当天的总订单数量（与当日计划发货日匹配的所有订单）
+      // 统计当天的发货数量（当天导入且状态为运输中的订单 + 当天更新为运输中状态的订单）
       const totalOrdersCount = orders.filter(order => {
         if (order.is_archived) return false;
         if (selectedCustomer !== 'all' && order.customer_name !== selectedCustomer) return false;
-        // 使用计划发货日作为统计日期
-        const orderDate = order.details?.planned_ship_date ? new Date(order.details.planned_ship_date).toISOString().split('T')[0] : order.updated_at.split('T')[0];
-        return orderDate === dateStr;
+        
+        // 获取订单创建日期（导入日期）
+        const createdDate = new Date(order.created_at).toISOString().split('T')[0];
+        // 获取订单更新日期
+        const updatedDate = new Date(order.updated_at).toISOString().split('T')[0];
+        
+        // 条件1：当天导入且状态为运输中的订单
+        const isCreatedTodayInTransit = createdDate === dateStr && order.status === OrderStatus.IN_TRANSIT;
+        // 条件2：当天更新且状态为运输中的订单
+        const isUpdatedTodayInTransit = updatedDate === dateStr && order.status === OrderStatus.IN_TRANSIT;
+        
+        return isCreatedTodayInTransit || isUpdatedTodayInTransit;
       }).length;
       
       // 统计当天的异常订单数量（有预警状态或异常状态的订单）

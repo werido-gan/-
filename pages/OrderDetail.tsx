@@ -21,34 +21,36 @@ export const OrderDetail: React.FC = () => {
   };
 
   const handleExport = () => {
-    // 导出订单功能
+    // 导出订单功能 - 与导入模板格式一致，添加物流状态和物流信息
     try {
-      // 准备导出数据
       const exportData = [{
-        '订单ID': order.id,
-        '订单号': order.order_number,
-        '客户名称': order.customer_name,
-        '部门': DEPARTMENT_DICT[order.department_key]?.name || order.department_key,
-        '订单状态': ORDER_STATUS_MAP[order.status],
-        '预警状态': WARNING_STATUS_MAP[order.warning_status],
-        '物流单号': order.details?.tracking_number || order.order_number,
-        '承运商': order.details?.carrier || 'N/A',
-        '目的地': order.details?.destination || 'N/A',
-        '计划发货日': order.details?.planned_ship_date ? new Date(order.details.planned_ship_date).toLocaleDateString() : 'N/A',
-        '下单日期': order.details?.order_date ? new Date(order.details.order_date).toLocaleDateString() : 'N/A',
-        '产品信息': order.details?.product_info || 'N/A',
-        '备注': order.details?.note || 'N/A',
-        '最后更新时间': new Date(order.updated_at).toLocaleString(),
-        '创建时间': order.created_at ? new Date(order.created_at).toLocaleString() : 'N/A'
+        '客户/项目名称': order.customer_name,
+        '申请单号/外部订单号': order.details?.application_number || '',
+        '收货地址': order.details?.destination || '',
+        '收货人': order.details?.recipient || '',
+        '收货人电话': order.details?.phone || '',
+        '物料名称': order.details?.product_info || '',
+        '订单号': order.details?.internal_order_number || order.order_number,
+        '快递公司': order.details?.carrier || '',
+        '快递单号': order.order_number,
+        '下单日期': order.details?.order_date ? new Date(order.details.order_date).toLocaleDateString() : '',
+        '计划发货日': order.details?.planned_ship_date ? new Date(order.details.planned_ship_date).toLocaleDateString() : '',
+        '备注': order.details?.note || '',
+        '物流状态': ORDER_STATUS_MAP[order.status] || order.status,
+        '物流信息': order.details?.timeline && Array.isArray(order.details.timeline) && order.details.timeline.length > 0 ? 
+          order.details.timeline.map((entry: any) => {
+            const time = entry.time ? new Date(entry.time).toLocaleString() : '';
+            const status = entry.status || '';
+            const description = entry.description || '';
+            return `${time} - ${status}: ${description}`;
+          }).join('\n') : '暂无物流信息'
       }];
       
-      // 创建工作簿和工作表
       const worksheet = XLSX.utils.json_to_sheet(exportData);
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, '订单详情');
       
-      // 导出为XLSX文件
-      XLSX.writeFile(workbook, `order_${order.id}_${order.order_number}.xlsx`);
+      XLSX.writeFile(workbook, `order_${order.order_number}.xlsx`);
     } catch (error) {
       console.error('导出订单失败:', error);
     }
