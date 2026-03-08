@@ -12,7 +12,9 @@ import { OrdersService } from '../orders/services/orders.service';
 @Module({
   imports: [
     forwardRef(() => OrdersModule),
-    HttpModule,
+    HttpModule.register({
+      timeout: 2400000, // 40分钟超时时间（2400秒）
+    }),
     LogisticsUtilModule,
     LogisticsQueueModule,
   ],

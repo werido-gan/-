@@ -79,7 +79,7 @@ class ApiService {
   constructor() {
     this.axiosInstance = axios.create({
       baseURL: '/api',
-      timeout: 540000, // ✅ 修复：将默认超时时间增加到9分钟（540秒）
+      timeout: 2400000, // 40分钟超时时间（2400秒）
       headers: {
         'Content-Type': 'application/json',
       },
@@ -418,7 +418,7 @@ class ApiService {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
-      timeout: 10000,
+      timeout: 2400000, // 40分钟超时时间（2400秒）
     });
     return response.data;
   }
@@ -457,7 +457,7 @@ class ApiService {
       ...params,
       phone: params.phone
     }, {
-      timeout: 900000 // 15分钟超时时间，给物流查询任务更多的时间来完成
+      timeout: 2400000 // 40分钟超时时间（2400秒）
     }).then(response => response.data);
   }
 

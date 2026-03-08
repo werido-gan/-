@@ -12,7 +12,9 @@ import { OperationLogsModule } from '../operation-logs/operation-logs.module';
 @Module({
   imports: [
     OrdersModule,
-    HttpModule,
+    HttpModule.register({
+      timeout: 2400000, // 40分钟超时时间（2400秒）
+    }),
     LogisticsUtilModule,
     LogisticsProxyModule,
     OperationLogsModule,
