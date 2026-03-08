@@ -14,11 +14,15 @@ import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { Order } from '../entities/order.entity';
 import { UpdateOrderDto } from '../dto/update-order.dto';
 import { UpdateStatusDto } from '../dto/update-status.dto';
+import { LogisticsQueryService } from '../../logistics-proxy/services/logistics-query.service';
 
 @Controller('orders')
 @UseGuards(JwtAuthGuard)
 export class OrdersController {
-  constructor(private readonly ordersService: OrdersService) {}
+  constructor(
+    private readonly ordersService: OrdersService,
+    private readonly logisticsQueryService: LogisticsQueryService,
+  ) {}
 
   @Post()
   async create(@Body() createOrderDto: any) {
@@ -96,5 +100,25 @@ export class OrdersController {
   async exportSingle(@Param('id') id: string) {
     const order = await this.ordersService.exportSingleOrder(Number(id));
     return { success: true, data: { orders: [order] } };
+  }
+
+  @Post(':id/query-and-sync')
+  async queryAndSync(@Param('id') id: string) {
+    const order = await this.ordersService.getOrderById(Number(id));
+    
+    if (!order) {
+      return { success: false, message: '订单不存在' };
+    }
+
+    const result = await this.logisticsQueryService.queryAndSync({
+      orderNumber: order.order_number,
+      carrier: order.carrier,
+      receiverPhone: order.details?.phone,
+    });
+
+    return {
+      success: true,
+      data: result,
+    };
   }
 }

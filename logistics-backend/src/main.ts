@@ -138,7 +138,7 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 
-  const port = process.env.PORT ?? 3002;
+  const port = process.env.PORT ?? 3001;
 
   if (isProduction) {
     // 生产环境：配置HTTPS

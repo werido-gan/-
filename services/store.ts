@@ -1334,507 +1334,136 @@ export const useLogisticsStore = create<LogisticsStore>((set, get) => ({
         throw new Error('订单不存在');
       }
       
-      set({ refreshProgress: 10, refreshStatus: '准备物流数据...' });
+      set({ refreshProgress: 10, refreshStatus: '创建查询任务...' });
       
-      // 1. 准备数据：提取单号、手机号和快递公司
-      // 快递公司名称到代码的映射
-      const carrierNameToCode: Record<string, string> = {
-        '顺丰': 'shunfeng',
-        '申通': 'shentong',
-        '圆通': 'yuantong',
-        '韵达': 'yunda',
-        '韵达快运': 'ydky',
-        '中通': 'zhongtong',
-        '中通快运': 'zhongtongkuaiyun',
-        '极兔': 'jito',
-        'EMS': 'ems',
-        'EMS经济': 'eyb',
-        '邮政国内小包': 'youzhengguonei',
-        '京东高速查': 'jdgao',
-        '京东验手机': 'jdbyphone',
-        '京东': 'jd',
-        '百世': 'huitongkuaidi',
-        '百世快运': 'baishiwuliu',
-        '宅急送': 'zhaijisong',
-        '全峰': 'quanfengkuaidi',
-        '德邦': 'debangwuliu',
-        '跨越': 'kuayue',
-        '安能': 'annengwuliu',
-        '安能快递': 'ane66',
-        '优速': 'youshuwuliu',
-        '如风达': 'rufengda',
-        '国通': 'guotongkuaidi',
-        '加运美': 'jiayunmeiwuliu',
-        '速尔': 'suer',
-        '远成': 'yuanchengwuliu',
-        'UEQ': 'ueq',
-        '菜鸟': 'zhimakaimen',
-        '全一': 'quanyikuaidi',
-        '龙邦': 'longbanwuliu',
-        '信丰': 'xinfengwuliu',
-        '苏宁': 'suning',
-        '佳吉': 'jiajiwuliu',
-        'D速': 'dsukuaidi',
-        '亚风': 'yafengsudi',
-        '中铁快运': 'zhongtiekuaiyun',
-        '天地华宇': 'tiandihuayu',
-        '丰程': 'sccod',
-        '晟邦': 'nanjingshengbang',
-        '递四方': 'disifang',
-        '蓝天国际': 'blueskyexpress',
-        '程光': 'flyway',
-        '富腾达': 'ftd',
-        '转运四方': 'zhuanyunsifang',
-        '澳世': 'ausexpress',
-        'AOL澳通': 'aolau',
-        '澳邮中国快运': 'auexpress',
-        'FedEx': 'fedex',
-        'FedEx中文': 'fedexcn',
-        'UPS': 'ups',
-        '品骏': 'pjbest',
-        '长江国际': 'changjiang',
-        '邮政国际': 'youzhengguoji',
-        '斑马物流': 'banma',
-        '捷安达': 'jieanda',
-        'C＆C': 'cncexp',
-        '极地': 'polarexpress',
-        '全速快运': 'quansu',
-        '优优': 'youyou',
-        '自动识别': 'auto',
-        '黄马甲': 'huangmajia',
-        '东骏': 'dongjun',
-        '菜鸟农村': 'cnnc',
-        '增益': 'zengyisudi',
-        '快服务': 'kfwnet',
-        '日日顺': 'rrs',
-        '新邦': 'xinbangwuliu',
-        '运通': 'yuntongkuaidi',
-        'KJDE': 'kjde',
-        'EWE': 'ewe',
-        '大田': 'datianwuliu',
-        '远成快运': 'ycgky',
-        '易客满': 'ecmscn',
-        '联昊通': 'lianhaowuliu',
-        '南方传媒': 'ndwl',
-        'DHL中国': 'dhl',
-        'DHL国际': 'dhlen',
-        'USPS': 'usps',
-        '嘉里大通': 'jialidatong',
-        '黑猫宅急便': 'yct',
-        'EMS英文': 'emsen',
-        '原飞航': 'yfh',
-        '特急送': 'lntjs',
-        '华企快运': 'huaqikuaiyun',
-        '速通': 'sut56',
-        '京广': 'jinguangsudikuaijian',
-        '盛辉': 'shenghuiwuliu',
-        '安迅': 'anxl',
-        '香港环球快运': 'huanqiuabc',
-        '远航国际': 'yuanhhk',
-        '平安达腾飞': 'pingandatengfei',
-        '顺心捷达': 'sxjdfreight',
-        '上海同城快递': 'shpost',
-        '九曳': 'jiuyescm',
-        '优邦': 'ubonex',
-        '澳洲飞跃': 'rlgaus',
-        '山西建华': 'sxjh',
-        '春风': 'spring56',
-        '新配盟': 'zmkmkd',
-        '迅达': 'xdexpress',
-        '陆本': 'luben',
-        '日昱': 'riyuwuliu',
-        '欧亚专线': 'euasia',
-        '澳德': 'auod',
-        '商桥': 'shangqiao56',
-        'TNT': 'tnt',
-        '尚途国际': 'shangtu',
-        '中环': 'zhonghuan',
-        '壹米滴答': 'yimidida',
-        'COE': 'coe',
-        '风驰': 'fengchi',
-        '威盛': 'wherexpess',
-        '易达通': 'qexpress',
-        '易达国际': 'eta100',
-        '新元国际': 'xynyc',
-        '一速递': 'oneexpress',
-        '中翼国际': 'chnexp',
-        '方舟国际': 'arkexpress',
-        '卓志': 'chinaicip',
-        '中通国际': 'ztog',
-        '众邮': 'zhongyouex',
-        '澳捷': 'ajl',
-        '龙行速运': 'longcps',
-        '中集冷云': 'cccc58',
-        '宏递': 'hd',
-        'EFS（平安快递）': 'efs',
-        '三盛': 'sansheng',
-        '贝海国际': 'xlobo',
-        '盛丰': 'sfwl',
-        '美快': 'meiquick',
-        '速腾': 'suteng',
-        '韵达全': 'ydquan',
-        '行云': 'xyb2b',
-        '海带宝': 'haidaibao',
-        '汇森': 'huisenky',
-        '丰网': 'fengwang',
-        '三象': 'sxexpress',
-        '新杰': 'sunjex',
-        '科捷': 'kejie',
-        '明达': 'tmwexpress',
-        '海信': 'savor',
-        '安得': 'annto',
-        '京东全': 'jdquan',
-        '哪吒': 'nezha',
-        '上海同城快寄': 'shpost',
-        '快捷快': 'gdkjk56',
-        '宇鑫': 'yuxinwuliu',
-        '联运通': 'szuem',
-        '中健云康': 'concare',
-        '中通冷链': 'ztocc',
-        '速邮达': 'suyoda',
-        '奔力': 'blex56',
-        '泛球': 'fanqiu',
-        '安敏': 'anmin56',
-        '极速达': 'jsdky',
-        '速必达': 'subida',
-        '志方': 'zfex56',
-        'Jingle': 'jingleexpressx',
-        '德坤': 'dekuncn',
-        '一站通': 'yztex',
-        'OCS': 'ocs',
-        '万家': 'wjwl',
-        '申通非缓存': 'stonocache',
-        'EMS非缓存': 'emsnocache',
-        '邮速达': 'inpostysd',
-        '中通非缓存': 'ztonocache',
-        '无忧': 'aliexpress',
-        'Aramex': 'aramex',
-        '菜鸟大件': 'cndj',
-        'Amazon': 'amazon',
-        '华通': 'huatong',
-        '云途': 'yunexpress',
-        '小米': 'xiaomiwuliu',
-        '京东前半程': 'jdqian',
-        '融辉': 'ronghui',
-        'Uniuni': 'uniuni',
-        'Pig': 'piggyship',
-        'RoyalMail': 'royal',
-        '万邦': 'wanb',
-        '快弟来了': 'kder',
-        'YWE': 'ywe',
-        '景光': 'jgwl',
-        '安顺快运': 'anshun',
-        '加拿大邮政': 'canpost',
-        'UBI': 'ubi',
-        'Sagawa': 'sagawa',
-        '佳成': 'jiacheng',
-        '日本邮政': 'japanpost',
-        '华翰': 'huahanwuliu',
-        '上海守务': 'shshouwu',
-        '笨鸟': 'benniao',
-        '奇普文': 'quipuwin',
-        '意大利邮政': 'posteit',
-        'EVRi': 'evri',
-        'KoreaPost': 'koreapost',
-        'GOFO': 'gofo',
-        'SwiftX': 'swiftx',
-        '顺衍': 'shunyanwl'
-      };
+      const response = await apiService.queryAndSync(Number(id));
       
-      // 提取手机号
-      const phone = order.details?.phone || (order as any).receiverPhone || '';
-      
-      // 提取快递公司
-      let carrier = order.carrier_code || order.details?.carrier_code || order.carrier || order.details?.carrier || 'auto';
-      if (carrier !== 'auto') {
-        const normalizedCarrier = carrier.trim();
-        carrier = carrierNameToCode[normalizedCarrier] || carrier;
+      if (!response.success || response.data?.status !== 'processing') {
+        throw new Error(response.message || '创建查询任务失败');
       }
       
-      // 提取快递单号
-      const expressNumber = order.details?.tracking_number || 
-        (order as any)['快递单号'] || (order as any).快递单号 || 
-        (order as any)['物流单号'] || (order as any).物流单号 || 
-        (order as any)['tracking_number'] || (order as any).tracking_number || 
-        (order as any)['logistics_number'] || (order as any).logistics_number || 
-        (order as any)['express_number'] || (order as any).express_number || 
-        (order as any)['delivery_number'] || (order as any).delivery_number || 
-        (order as any)['运单号'] || (order as any).运单号 || 
-        (order as any)['kddh'] || (order as any).kddh || 
-        order.details?.['快递单号'] || order.details?.快递单号 || 
-        order.details?.['物流单号'] || order.details?.物流单号 || 
-        order.details?.logistics_number || order.details?.express_number || 
-        order.details?.delivery_number || order.details?.['运单号'] || 
-        order.details?.运单号 || order.details?.kddh ||
-        order.order_number;
+      const taskId = response.data.taskId;
+      set({ refreshProgress: 20, refreshStatus: '查询物流信息...' });
       
-      if (!expressNumber || expressNumber.toString().trim() === '') {
-        throw new Error('快递单号缺失');
-      }
+      const maxPollingAttempts = 30;
+      const pollingInterval = 2000;
+      let pollingAttempts = 0;
       
-      set({ refreshProgress: 20, refreshStatus: '构建物流请求...' });
-      
-      // 2. 构建kddhsString格式
-      const tail = phone.length >= 4 ? phone.slice(-4) : '';
-      const kddhsString = tail ? `${expressNumber}||${tail}` : expressNumber;
-      
-      set({ refreshProgress: 30, refreshStatus: '创建物流任务...' });
-      
-      // 3. 创建物流任务
-      const createRes = await apiService.createBatchLogisticsTask({
-        kdgs: carrier,
-        kddhs: kddhsString,
-        zffs: 'jinbi',
-        isBackTaskName: 'yes'
-      });
-      
-      console.log(`创建任务响应:`, createRes);
-      
-      if (!(createRes as any).success || (createRes as any).data?.code !== 1) {
-        throw new Error(`创建物流任务失败: ${(createRes as any).data?.msg || (createRes as any).message || '未知错误'}`);
-      }
-      
-      const taskName = (createRes as any).data.msg;
-      console.log(`创建任务成功，任务名称: ${taskName}`);
-      
-      set({ refreshProgress: 40, refreshStatus: '查询物流信息...' });
-      
-      // 4. 轮询进度
-      let logisticsResults: any[] = [];
-      let retries = 0;
-      const maxRetries = 240; // 最多等 40 分钟 (240次 × 10秒 = 2400秒 = 40分钟)
-      let taskCompleted = false;
-      let lastRequestTime = 0;
-      const minRequestInterval = 10000; // 最小请求间隔，单位：毫秒
-      
-      while (retries < maxRetries) {
-        try {
-          // 计算距离上次请求的时间间隔
-          const now = Date.now();
-          const timeSinceLastRequest = now - lastRequestTime;
-          
-          // 如果距离上次请求的时间间隔小于最小请求间隔，等待到最小请求间隔
-          if (timeSinceLastRequest < minRequestInterval) {
-            const waitTime = minRequestInterval - timeSinceLastRequest;
-            console.log(`距离上次请求时间过短，等待 ${waitTime}ms`);
-            await new Promise(resolve => setTimeout(resolve, waitTime));
-          }
-          
-          // 记录本次请求的时间
-          lastRequestTime = Date.now();
-          
-          // 支持分页查询
-          let currentPage = 1;
-          let totalPages = 1;
-          let requestRejected = false;
-          
-          do {
-            const selectRes = await apiService.getBatchLogisticsResult({
-              taskname: taskName,
-              pageno: currentPage
-            });
-
-            console.log(`轮询第 ${retries} 次，页码 ${currentPage} 响应:`, selectRes);
+      const pollProgress = async (): Promise<void> => {
+        while (pollingAttempts < maxPollingAttempts) {
+          try {
+            const progressResponse = await apiService.getOrderProgress(taskId);
             
-            // 检查是否是请求被驳回的错误
-            const isMsgString = typeof (selectRes as any).data?.msg === 'string';
-            const isMessageString = typeof (selectRes as any).message === 'string';
-            const isRequestRejected = (isMsgString && (selectRes as any).data?.msg.includes('此任务刚刚select过一次，故本次请求被驳回')) || 
-                                     (isMessageString && (selectRes as any).message.includes('此任务刚刚select过一次，故本次请求被驳回'));
-            
-            if (isRequestRejected) {
-              // 处理请求被驳回错误，增加重试间隔
-              console.warn(`请求被驳回，增加重试间隔 (第${retries}次重试)`);
-              // 使用指数退避策略，每次收到驳回响应时，将重试间隔翻倍
-              const backoffInterval = Math.min(2000 * Math.pow(2, retries), 60000); // 最大60秒
-              console.log(`使用指数退避策略，重试间隔: ${backoffInterval}ms`);
-              await new Promise(resolve => setTimeout(resolve, backoffInterval));
-              // 标记请求被驳回，跳过当前do-while循环的剩余迭代
-              requestRejected = true;
-              break;
-            } else if ((selectRes as any).success) {
-              if ((selectRes as any).data?.code === 1) {
-                const { jindu, totalpage, list } = (selectRes as any).data.msg;
-                console.log(`轮询第 ${retries} 次，进度 ${jindu}%，数据条数 ${list?.length || 0}`);
-                
-                // 更新进度
-                const currentProgress = 40 + (jindu * 50 / 100); // 40-90%
-                set({ refreshProgress: Math.floor(currentProgress), refreshStatus: `查询物流信息... ${jindu}%` });
-
-                if (list && list.length > 0) {
-                  console.log(`获取到物流信息:`, list.map(l => l.kddh));
-                  console.log(`物流信息详情:`, list);
-                  // 避免重复添加物流信息
-                  const newResults = list.filter((item: any) => 
-                    !logisticsResults.some((existing: any) => existing.kddh === item.kddh)
-                  );
-                  logisticsResults = [...logisticsResults, ...newResults];
-                  console.log(`当前累计物流信息: ${logisticsResults.length}条`);
-                  console.log(`累计物流信息详情:`, logisticsResults);
-                }
-
-                totalPages = totalpage || 1;
-                currentPage++;
-
-                if (jindu === 100) {
-                  console.log(`任务完成，进度 100%`);
-                  taskCompleted = true;
-                  break;
-                }
-              } else {
-                const errorMsg = `轮询失败: ${(selectRes as any).data?.msg || '未知错误'}`;
-                console.error(errorMsg);
-                throw new Error(errorMsg);
-              }
-            } else {
-              const errorMsg = `轮询请求失败: ${(selectRes as any).message || '网络错误'}`;
-              console.error(errorMsg);
-              throw new Error(errorMsg);
+            if (!progressResponse.success || !progressResponse.data) {
+              throw new Error(progressResponse.message || '获取任务进度失败');
             }
-          } while (currentPage <= totalPages && !requestRejected);
-          
-          retries++;
-          
-          if (taskCompleted) {
-            break;
-          }
-        } catch (pollingError) {
-          const errorMessage = (pollingError as Error).message;
-          console.error(`轮询物流信息失败:`, errorMessage);
-          retries++;
-          
-          // 使用指数退避策略，每次轮询失败时，将重试间隔翻倍
-          const backoffInterval = Math.min(2000 * Math.pow(2, retries), 60000); // 最大60秒
-          console.log(`使用指数退避策略，重试间隔: ${backoffInterval}ms`);
-          await new Promise(resolve => setTimeout(resolve, backoffInterval));
-        }
-      }
-      
-      if (logisticsResults.length === 0) {
-        throw new Error('未获取到物流信息');
-      }
-      
-      set({ refreshProgress: 90, refreshStatus: '更新订单状态...' });
-      
-      // 5. 处理物流结果并更新订单状态
-      const logisticsInfo = logisticsResults[0]; // 只处理第一个结果，因为是单个订单
-      
-      console.log('物流信息详情:', logisticsInfo);
-      console.log('物流状态字段:', logisticsInfo.wuliuzhuangtai);
-      console.log('物流状态包含异常:', logisticsInfo.wuliuzhuangtai.includes('异常'));
-      console.log('物流状态包含异常件:', logisticsInfo.wuliuzhuangtai.includes('异常件'));
-      
-      // 解析物流轨迹信息
-      const timeline = [];
-      let isDelivered = false;
-      if (logisticsInfo.xiangxiwuliu) {
-        const logisticsLines = logisticsInfo.xiangxiwuliu.split('<br>');
-        for (const line of logisticsLines) {
-          const timeMatch = line.match(/<i>([^<]+)<\/i>\s*\|\s*(.+)/);
-          if (timeMatch) {
-            const [, timeStr, description] = timeMatch;
-            const trimmedDescription = description.trim();
-            const trimmedTimeStr = timeStr.trim();
             
-            try {
-              const parsedDate = new Date(trimmedTimeStr);
-              const timestamp = isNaN(parsedDate.getTime()) ? new Date().toISOString() : parsedDate.toISOString();
-              
-              timeline.push({
-                timestamp: timestamp,
-                description: trimmedDescription,
-                location: '未知地点'
+            const taskData = progressResponse.data;
+            const progress = Math.floor(20 + (taskData.progress * 70 / 100));
+            
+            set({ 
+              refreshProgress: progress, 
+              refreshStatus: taskData.message || '查询物流信息...' 
+            });
+            
+            if (taskData.status === 'completed') {
+              set({ 
+                refreshProgress: 100, 
+                refreshStatus: '刷新完成' 
               });
               
-              if (trimmedDescription.includes('签收') || trimmedDescription.includes('取出') || trimmedDescription.includes('包裹已从代收点取出') || trimmedDescription.includes('包裹已送至') || trimmedDescription.includes('已从代收点取出')) {
-                isDelivered = true;
+              if (taskData.result?.logisticsInfo) {
+                const logisticsInfo = taskData.result.logisticsInfo;
+                const timeline = [];
+                let isDelivered = false;
+                
+                if (logisticsInfo.xiangxiwuliu) {
+                  const logisticsLines = logisticsInfo.xiangxiwuliu.split('<br>');
+                  for (const line of logisticsLines) {
+                    const timeMatch = line.match(/<i>([^<]+)<\/i>\s*\|\s*(.+)/);
+                    if (timeMatch) {
+                      const [, timeStr, description] = timeMatch;
+                      const trimmedDescription = description.trim();
+                      const trimmedTimeStr = timeStr.trim();
+                      
+                      try {
+                        const parsedDate = new Date(trimmedTimeStr);
+                        const timestamp = isNaN(parsedDate.getTime()) ? new Date().toISOString() : parsedDate.toISOString();
+                        
+                        timeline.push({
+                          timestamp: timestamp,
+                          description: trimmedDescription,
+                          location: '未知地点'
+                        });
+                        
+                        if (trimmedDescription.includes('签收') || trimmedDescription.includes('取出') || trimmedDescription.includes('包裹已从代收点取出') || trimmedDescription.includes('包裹已送至') || trimmedDescription.includes('已从代收点取出')) {
+                          isDelivered = true;
+                        }
+                      } catch (dateError) {
+                        console.warn('解析物流时间失败:', trimmedTimeStr, dateError);
+                      }
+                    }
+                  }
+                }
+                
+                const updatedOrder = {
+                  ...order,
+                  customer_name: order.customer_name || '',
+                  details: {
+                    ...order.details,
+                    timeline: timeline,
+                    tracking_number: logisticsInfo.kddh,
+                    carrier: logisticsInfo.kdgs
+                  },
+                  carrier: logisticsInfo.kdgs,
+                  status: isDelivered || logisticsInfo.wuliuzhuangtai.includes('签收') || logisticsInfo.wuliuzhuangtai.includes('取出') || logisticsInfo.wuliuzhuangtai.includes('包裹已从代收点取出') || logisticsInfo.wuliuzhuangtai.includes('包裹已送至') ? OrderStatus.DELIVERED :
+                          logisticsInfo.wuliuzhuangtai.includes('退回') ? OrderStatus.RETURNED :
+                          logisticsInfo.wuliuzhuangtai.includes('异常') || logisticsInfo.wuliuzhuangtai.includes('问题') || logisticsInfo.wuliuzhuangtai.includes('失败') || logisticsInfo.wuliuzhuangtai.includes('派送不成功') || logisticsInfo.wuliuzhuangtai.includes('未妥投') || logisticsInfo.wuliuzhuangtai.includes('反签收') || logisticsInfo.wuliuzhuangtai.includes('拒签') || logisticsInfo.wuliuzhuangtai.includes('退件') || logisticsInfo.wuliuzhuangtai.includes('无法') || logisticsInfo.wuliuzhuangtai.includes('未通过') || logisticsInfo.wuliuzhuangtai.includes('异常件') || logisticsInfo.wuliuzhuangtai.includes('拒收') || logisticsInfo.wuliuzhuangtai.includes('待进一步处理') || logisticsInfo.wuliuzhuangtai.includes('问题件') || logisticsInfo.wuliuzhuangtai.includes('转寄更改单') || logisticsInfo.wuliuzhuangtai.includes('退货') || logisticsInfo.wuliuzhuangtai.includes('无法正常派送') ? OrderStatus.EXCEPTION :
+                          logisticsInfo.wuliuzhuangtai.includes('运输') ? OrderStatus.IN_TRANSIT :
+                          logisticsInfo.wuliuzhuangtai.includes('无物流') ? OrderStatus.PENDING : OrderStatus.PENDING,
+                  updated_at: new Date().toISOString()
+                };
+                
+                set((state) => ({
+                  orders: state.orders.map(o => o.id === Number(id) ? updatedOrder : o),
+                }));
               }
-            } catch (dateError) {
-              console.warn('解析物流时间失败:', trimmedTimeStr, dateError);
+              
+              await get().fetchAllOrders();
+              return;
             }
+            
+            if (taskData.status === 'failed') {
+              throw new Error(taskData.error || '查询失败');
+            }
+            
+            pollingAttempts++;
+            await new Promise(resolve => setTimeout(resolve, pollingInterval));
+          } catch (error) {
+            pollingAttempts++;
+            if (pollingAttempts >= maxPollingAttempts) {
+              throw error;
+            }
+            await new Promise(resolve => setTimeout(resolve, pollingInterval));
           }
         }
-      }
-      
-      // 使用新的物流信息覆盖原来的物流信息
-      const updatedOrder = {
-        ...order,
-        // 明确指定客户名称，确保它被包含在updatedOrder对象中
-        customer_name: order.customer_name || '',
-        details: {
-          ...order.details,
-          timeline: timeline,
-          tracking_number: logisticsInfo.kddh,
-          carrier: logisticsInfo.kdgs
-        },
-        carrier: logisticsInfo.kdgs,
-        status: isDelivered || logisticsInfo.wuliuzhuangtai.includes('签收') || logisticsInfo.wuliuzhuangtai.includes('取出') || logisticsInfo.wuliuzhuangtai.includes('包裹已从代收点取出') || logisticsInfo.wuliuzhuangtai.includes('包裹已送至') ? OrderStatus.DELIVERED :
-                logisticsInfo.wuliuzhuangtai.includes('退回') ? OrderStatus.RETURNED :
-                logisticsInfo.wuliuzhuangtai.includes('异常') || logisticsInfo.wuliuzhuangtai.includes('问题') || logisticsInfo.wuliuzhuangtai.includes('失败') || logisticsInfo.wuliuzhuangtai.includes('派送不成功') || logisticsInfo.wuliuzhuangtai.includes('未妥投') || logisticsInfo.wuliuzhuangtai.includes('反签收') || logisticsInfo.wuliuzhuangtai.includes('拒签') || logisticsInfo.wuliuzhuangtai.includes('退件') || logisticsInfo.wuliuzhuangtai.includes('无法') || logisticsInfo.wuliuzhuangtai.includes('未通过') || logisticsInfo.wuliuzhuangtai.includes('异常件') || logisticsInfo.wuliuzhuangtai.includes('拒收') || logisticsInfo.wuliuzhuangtai.includes('待进一步处理') || logisticsInfo.wuliuzhuangtai.includes('问题件') || logisticsInfo.wuliuzhuangtai.includes('转寄更改单') || logisticsInfo.wuliuzhuangtai.includes('退货') || logisticsInfo.wuliuzhuangtai.includes('无法正常派送') ? OrderStatus.EXCEPTION :
-                logisticsInfo.wuliuzhuangtai.includes('运输') ? OrderStatus.IN_TRANSIT :
-                logisticsInfo.wuliuzhuangtai.includes('无物流') ? OrderStatus.PENDING : OrderStatus.PENDING,
-        updated_at: new Date().toISOString()
+        
+        throw new Error('查询超时');
       };
       
-      // 更新订单状态
-      set((state) => ({
-        orders: state.orders.map(o => o.id === Number(id) ? updatedOrder : o),
-        loading: { ...state.loading, updateOrderStatus: false },
+      await pollProgress();
+      
+      set({ 
+        loading: { updateOrderStatus: false },
         refreshProgress: 100,
         refreshStatus: '刷新完成'
-      }));
+      });
       
-      // 保存更新后的订单到后端
-      try {
-        // 定义常量
-        const CUSTOMER_NAME_FIELD = 'customer_name';
-        const RECIPIENT_FIELD = 'recipient';
-        
-        console.log('保存更新后的订单到后端:', updatedOrder);
-        console.log('保存订单，客户名称:', order.details?.[RECIPIENT_FIELD] || order[CUSTOMER_NAME_FIELD]);
-        
-        // 构建后端期望的订单格式，只包含后端DTO中定义的字段
-        const orderToSave = {
-          order_number: updatedOrder.order_number,
-          customer_name: order.customer_name || '',
-          department_key: updatedOrder.department_key || 'EAST',
-          carrier: updatedOrder.details?.carrier || updatedOrder.carrier || '',
-          carrier_code: updatedOrder.carrier_code || updatedOrder.details?.carrier_code || '',
-          receiverPhone: updatedOrder.details?.phone || '',
-          status: updatedOrder.status,
-          details: {
-            order_date: order.details?.order_date,
-            destination: order.details?.destination,
-            planned_ship_date: order.details?.planned_ship_date,
-            carrier: updatedOrder.details?.carrier,
-            product_info: order.details?.product_info,
-            phone: order.details?.phone,
-            note: order.details?.note,
-            timeline: updatedOrder.details?.timeline,
-            tracking_number: updatedOrder.details?.tracking_number,
-            // 确保收货人名称也被保存
-            recipient: order.details?.[RECIPIENT_FIELD] || ''
-          }
-        };
-        
-        // 调用后端API保存订单
-        await apiService.put(`/orders/${id}`, orderToSave);
-        console.log('订单保存成功');
-        
-        // 重新获取所有订单，确保本地状态与后端同步
-        await get().fetchAllOrders();
-        console.log('重新获取订单成功');
-      } catch (error) {
-        console.error('保存订单到后端失败:', error);
-        // 保存失败不影响用户体验，仍然返回成功
-      }
-      
-      // 3秒后清除刷新状态
       setTimeout(() => {
         set({ refreshStatus: null, refreshProgress: 0 });
       }, 3000);
       
-      return { success: true, message: '物流状态已更新', data: { order: updatedOrder } };
+      return { success: true, message: '物流状态已更新' };
     } catch (error) {
       const errorMessage = (error as Error).message;
       console.error('更新订单状态失败:', errorMessage);
@@ -1845,7 +1474,6 @@ export const useLogisticsStore = create<LogisticsStore>((set, get) => ({
         refreshStatus: `刷新失败: ${errorMessage}`
       });
       
-      // 3秒后清除刷新状态
       setTimeout(() => {
         set({ refreshStatus: null, refreshProgress: 0 });
       }, 3000);

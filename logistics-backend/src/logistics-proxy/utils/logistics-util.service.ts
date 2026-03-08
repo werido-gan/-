@@ -633,4 +633,26 @@ export class LogisticsUtilService {
 
     return nodes;
   }
+
+  requiresPhoneVerification(carrierCode: string): boolean {
+    const carriersRequiringPhone = ['shunfeng', 'zhongtong'];
+    return carriersRequiringPhone.includes(carrierCode);
+  }
+
+  getStatusPriority(status: string): number {
+    const priorityMap: Record<string, number> = {
+      'pending': 0,
+      'in_transit': 1,
+      'exception': 50,
+      'delivered': 99,
+      'returned': 99,
+    };
+    return priorityMap[status] || 0;
+  }
+
+  shouldUpdateOrderStatus(currentStatus: string, newStatus: string): boolean {
+    const currentPriority = this.getStatusPriority(currentStatus);
+    const newPriority = this.getStatusPriority(newStatus);
+    return currentPriority <= newPriority;
+  }
 }

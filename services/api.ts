@@ -460,6 +460,16 @@ class ApiService {
       timeout: 900000 // 15分钟超时时间，给物流查询任务更多的时间来完成
     }).then(response => response.data);
   }
+
+  // 异步物流查询：创建查询任务
+  async queryAndSync(orderId: number): Promise<ApiResponse<{ status: string; taskId?: string }>> {
+    return this.post<{ status: string; taskId?: string }>(`/orders/${orderId}/query-and-sync`, {});
+  }
+
+  // 异步物流查询：获取任务进度
+  async getOrderProgress(taskId: string): Promise<ApiResponse<any>> {
+    return this.get(`/orders/progress/${taskId}`);
+  }
   
   // 更新物流API配置
   updateLogisticsConfig(config: Partial<{ appid: number; outerid: string }>): void {

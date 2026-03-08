@@ -1,6 +1,4 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { TaskExecution } from './entities/task-execution.entity';
 import { TasksService } from './services/tasks.service';
 import { TasksController } from './controllers/tasks.controller';
 import { OrdersModule } from '../orders/orders.module';
@@ -8,13 +6,16 @@ import { HttpModule } from '@nestjs/axios';
 import { LogisticsUtilModule } from '../logistics-proxy/utils/logistics-util.module';
 import { RedisModule } from '@nestjs-modules/ioredis';
 import { DistributedLockService } from '../common/services/distributed-lock.service';
+import { LogisticsProxyModule } from '../logistics-proxy/logistics-proxy.module';
+import { OperationLogsModule } from '../operation-logs/operation-logs.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([TaskExecution]),
     OrdersModule,
     HttpModule,
     LogisticsUtilModule,
+    LogisticsProxyModule,
+    OperationLogsModule,
     RedisModule.forRootAsync({
       useFactory: () => ({
         type: 'single',
